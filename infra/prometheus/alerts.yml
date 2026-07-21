@@ -1,0 +1,87 @@
+groups:
+  - name: edf_infrastructure
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cible Prometheus injoignable — {{ $labels.job }}"
+          description: "La cible {{ $labels.instance }} (job {{ $labels.job }}) ne répond plus au scrape."
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum(kafka_consumergroup_lag) > 50000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lag Kafka élevé"
+          description: "Lag total consommateur > 50 000 messages ({{ $value | printf \"%.0f\" }})."
+
+      - alert: KafkaBrokerExporterDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Exporter Kafka indisponible"
+          description: "kafka-exporter ne répond plus — métriques Kafka absentes."
+
+      - alert: PostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Exporter PostgreSQL indisponible"
+          description: "postgres-exporter ne répond plus."
+
+      - alert: PostgresConnectionsHigh
+        expr: sum(pg_stat_activity_count{datname="edf_dw"}) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Connexions PostgreSQL élevées"
+          description: "{{ $value | printf \"%.0f\" }} connexions actives sur edf_dw (seuil 80)."
+
+      - alert: PostgresLongTransaction
+        expr: max(pg_stat_activity_max_tx_duration{datname="edf_dw"}) > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Transaction PostgreSQL longue"
+          description: "Transaction active depuis {{ $value | printf \"%.0f\" }}s."
+
+      - alert: MinIOStorageHigh
+        expr: |
+          (
+            minio_cluster_usage_total_bytes
+            / clamp_min(minio_cluster_capacity_usable_total_bytes, 1)
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Stockage MinIO presque plein"
+          description: "Utilisation cluster > 85 % ({{ $value | humanizePercentage }})."
+
+      - alert: SparkMasterMetricsDown
+        expr: up{job="spark-master"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Spark Master — métriques injoignables"
+          description: "/metrics/prometheus du master ne répond pas (UI Web possible sur :8082)."
+
+      - alert: SparkWorkersDegraded
+        expr: count(up{job="spark-workers"} == 1) < 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Workers Spark dégradés"
+          description: "Seulement {{ $value | printf \"%.0f\" }}/2 workers exposent leurs métriques."

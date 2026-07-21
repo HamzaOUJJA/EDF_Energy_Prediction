@@ -1,0 +1,13 @@
+# =======================================================================
+# **************    Projet : EDF Energy Prediction         **************
+# **************    Version : 1.0.0                        **************
+# =======================================================================
+#
+# spark/requirements.txt — Spark job dependencies
+# =======================================================================
+
+# PySpark ML (VectorAssembler, regressors) requires numpy on the driver.
+# Spark 3.5.1 image Python caps numpy at 1.24.x.
+numpy==1.24.4
+boto3>=1.34.0
+psycopg2-binary==2.9.9

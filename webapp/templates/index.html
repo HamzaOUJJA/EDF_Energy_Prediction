@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EDF Pipeline — {{ dag_id }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">EDF PIPELINE</span>
+    </div>
+    <nav class="tabbar">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="metrics">Metrics</button>
+      <button class="tab" data-tab="alerts">Alerts</button>
+      <button class="tab" data-tab="config">Config</button>
+    </nav>
+    <div class="topbar-status">
+      <span class="live-dot"></span> LIVE
+      <span class="dag-id">{{ dag_id }}</span>
+    </div>
+  </header>
+
+  <div class="trigger-bar">
+    {% if years %}
+      <div class="years-inline" id="years-grid">
+        {% for year in years %}
+          <label class="year-checkbox">
+            <input type="checkbox" name="years" value="{{ year }}" checked>
+            <span>{{ year }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    {% else %}
+      <span class="empty-hint">No XLS in data/raw — trigger will process all years found at run time.</span>
+    {% endif %}
+    <button id="select-all-btn" type="button" class="btn btn-secondary">All</button>
+    <button id="select-none-btn" type="button" class="btn btn-secondary">None</button>
+    <button id="trigger-btn" type="button" class="btn btn-primary">Trigger pipeline</button>
+    <button id="stop-btn" type="button" class="btn btn-danger">Stop all</button>
+    <button id="refresh-btn" type="button" class="btn btn-secondary">Refresh</button>
+    <button id="clear-btn" type="button" class="btn btn-secondary">Clear</button>
+    <span class="run-info">
+      <code id="run-id">no run selected</code>
+      <span id="run-state" class="badge">-</span>
+    </span>
+    <p id="trigger-error" class="error" hidden></p>
+  </div>
+
+  <main>
+    <!-- ============================== OVERVIEW ============================== -->
+    <section class="tab-panel active" id="tab-overview">
+      <div class="kpi-strip" id="kpi-strip"></div>
+
+      <div class="overview-grid">
+        <div class="panel topology-panel">
+          <h2>Pipeline Architecture</h2>
+          <div class="topology" id="topology"></div>
+        </div>
+
+        <aside class="panel detail-panel" id="detail-panel">
+          <p class="empty-hint">Click a stage to see its tasks and logs.</p>
+        </aside>
+      </div>
+
+      <div class="cards-row">
+        <div class="panel">
+          <h2>Infrastructure</h2>
+          <div class="card-grid" id="infra-cards"></div>
+        </div>
+        <div class="panel">
+          <h2>Storage</h2>
+          <div class="card-grid" id="storage-cards"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>System Event Log</h2>
+        <div class="event-log" id="event-log"></div>
+      </div>
+    </section>
+
+    <!-- ============================== METRICS ============================== -->
+    <section class="tab-panel" id="tab-metrics" hidden>
+      <div class="panel">
+        <h2>EDF ETL — Vue plateforme</h2>
+        <iframe class="grafana-frame" id="grafana-frame-1" title="Grafana platform overview"></iframe>
+      </div>
+      <div class="panel">
+        <h2>Analytics &amp; ML</h2>
+        <iframe class="grafana-frame" id="grafana-frame-2" title="Grafana analytics and ML"></iframe>
+      </div>
+    </section>
+
+    <!-- ============================== ALERTS ============================== -->
+    <section class="tab-panel" id="tab-alerts" hidden>
+      <div class="panel">
+        <h2>Alerts — warnings &amp; errors</h2>
+        <div class="event-log" id="alerts-log"></div>
+      </div>
+    </section>
+
+    <!-- ============================== CONFIG ============================== -->
+    <section class="tab-panel" id="tab-config" hidden>
+      <div class="panel">
+        <h2>Configuration</h2>
+        <dl class="config-list" id="config-list"></dl>
+      </div>
+      <div class="panel">
+        <h2>Links</h2>
+        <ul class="link-list" id="config-links"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

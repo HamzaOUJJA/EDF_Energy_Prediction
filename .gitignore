@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.claude
+# Environnements / secrets
+.env
+*.env
+.env.*
+secrets/
+credentials/
+*.key
+*.pem
+
+
+data/raw
+data/models
+data/eda
+
+
+# Docker / logs
+*.log
+logs/
+airflow/logs/
+
+# Données volumineuses
+data/raw/
+data/bronze/
+data/silver/
+data/gold/
+data/tmp/
+data/cache/
+*.parquet
+*.csv
+*.xlsx
+*.xls
+
+# Modèles et artefacts générés
+data/models/
+models/
+outputs/
+reports/
+_report/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Système
+.DS_Store
+Thumbs.db

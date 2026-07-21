@@ -1,0 +1,574 @@
+services:
+  # =======================================================================
+  # Zookeeper (Gestionnaire de configuration pour Kafka)
+  # =======================================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: edf-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc -w 3 127.0.0.1 2181 | grep -q Mode || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 24
+      start_period: 900s
+    restart: unless-stopped
+
+  # =======================================================================
+  # Kafka (Bus de messagerie)
+  # =======================================================================
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: edf-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 24
+      start_period: 900s
+    restart: unless-stopped
+
+  # =======================================================================
+  # Kafka UI (Interface web pour Kafka)
+  # =======================================================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: edf-kafka-ui
+    init: true
+    depends_on:
+      kafka:
+        condition: service_started
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: edf-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    restart: unless-stopped
+
+  # =======================================================================
+  # Minio (Lac de données - Bronze / Silver / Gold - rapport EDA - modèles)
+  # =======================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: edf-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: edfadmin
+      MINIO_ROOT_PASSWORD: edfpassword123
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  # =======================================================================
+  # Minio Init (Initialisation des buckets Minio)
+  # =======================================================================
+  minio-init:
+    image: minio/mc:latest
+    container_name: edf-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set local http://minio:9000 edfadmin edfpassword123;
+      mc mb --ignore-existing local/edf-bronze;
+      mc mb --ignore-existing local/edf-silver;
+      mc mb --ignore-existing local/edf-gold;
+      mc mb --ignore-existing local/rapport-eda;
+      mc mb --ignore-existing local/models;
+      echo 'MinIO buckets : edf-bronze, edf-silver, edf-gold, rapport-eda, models';
+      "
+    restart: on-failure
+
+  # =======================================================================
+  # PostgreSQL (Base de données unique du projet - metadata Airflow, entrepôt de données médaillon Gold, audit pipelines + métriques ML)
+  # =======================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: edf-postgres
+    environment:
+      POSTGRES_USER: edf
+      POSTGRES_PASSWORD: edf123
+      POSTGRES_DB: edf_dw
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edf -d edf_dw"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+    restart: unless-stopped
+
+  # =======================================================================
+  # Spark Master (Master Spark - soumission jobs via API REST)
+  # =======================================================================
+  spark-master:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: edf-spark:3.5.1
+    container_name: edf-spark-master
+    init: true
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    env_file:
+      - .env
+    environment:
+      SPARK_MASTER_HOST: spark-master
+      SPARK_MASTER_PORT: 7077
+      SPARK_MASTER_WEBUI_PORT: 8080
+      MODEL_LOCAL_PATH: /opt/spark-data/models/rte
+      ML_MODEL_PATH: s3a://models/rte/
+      SPARK_MASTER_OPTS: >-
+        -Dspark.master.rest.enabled=true
+        -Dspark.master.rest.port=6066
+        -Dspark.metrics.conf=/opt/spark/conf/metrics.properties
+    ports:
+      - "8082:8080"
+      - "7077:7077"
+      - "6066:6066"
+    volumes:
+      - ./infra/spark/metrics.properties:/opt/spark/conf/metrics.properties:ro
+      - ./spark:/opt/spark-project/spark:ro
+      - ./rte_pipeline:/opt/spark-project/rte_pipeline:ro
+      - ./spark/jobs:/opt/spark-jobs:ro
+      - ./data/raw:/opt/spark-data/raw:ro
+      - ./data/models:/opt/spark-data/models
+      - spark_logs:/opt/spark/logs
+      - spark_ivy_cache:/home/spark/.ivy2
+    mem_limit: 10240m
+    restart: unless-stopped
+
+  # =======================================================================
+  # Spark Worker 1 (Worker Spark)
+  # =======================================================================
+  spark-worker-1:
+    image: edf-spark:3.5.1
+    container_name: edf-spark-worker-1
+    init: true
+    depends_on:
+      - spark-master
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    env_file:
+      - .env
+    environment:
+      SPARK_WORKER_WEBUI_PORT: 8081
+      SPARK_WORKER_OPTS: "-Dspark.metrics.conf=/opt/spark/conf/metrics.properties"
+    volumes:
+      - ./infra/spark/metrics.properties:/opt/spark/conf/metrics.properties:ro
+      - ./spark:/opt/spark-project/spark:ro
+      - ./rte_pipeline:/opt/spark-project/rte_pipeline:ro
+      - ./spark/jobs:/opt/spark-jobs:ro
+      - ./data/raw:/opt/spark-data/raw:ro
+      - spark_ivy_cache:/home/spark/.ivy2
+    mem_limit: 12288m
+    restart: unless-stopped
+
+  # =======================================================================
+  # Spark Worker 2 (Worker Spark)
+  # =======================================================================
+  spark-worker-2:
+    image: edf-spark:3.5.1
+    container_name: edf-spark-worker-2
+    init: true
+    depends_on:
+      - spark-master
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    env_file:
+      - .env
+    environment:
+      SPARK_WORKER_WEBUI_PORT: 8081
+      SPARK_WORKER_OPTS: "-Dspark.metrics.conf=/opt/spark/conf/metrics.properties"
+    volumes:
+      - ./infra/spark/metrics.properties:/opt/spark/conf/metrics.properties:ro
+      - ./spark:/opt/spark-project/spark:ro
+      - ./rte_pipeline:/opt/spark-project/rte_pipeline:ro
+      - ./spark/jobs:/opt/spark-jobs:ro
+      - ./data/raw:/opt/spark-data/raw:ro
+      - spark_ivy_cache:/home/spark/.ivy2
+    mem_limit: 12288m
+    restart: unless-stopped
+
+  # =======================================================================
+  # Redis (Cache & message broker)
+  # =======================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: edf-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # =======================================================================
+  # Airflow Init (Initialisation de la base de données)
+  # =======================================================================
+  airflow-init:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    image: edf-airflow:latest
+    container_name: edf-airflow-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://edf:edf123@postgres/edf_dw
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__FERNET_KEY: "ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg="
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin123
+    env_file:
+      - .env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./data:/opt/airflow/data
+      - ./rte_pipeline:/opt/airflow/project/rte_pipeline
+      - ./spark:/opt/airflow/project/spark
+      - ./infra/postgres:/opt/airflow/infra/postgres:ro
+    command: >
+      bash -c "
+      airflow version &&
+      airflow pools set spark_cluster 1 'Un seul job Spark REST actif (mode professionnel)' || true
+      "
+    restart: on-failure
+
+  # =======================================================================
+  # Airflow Webserver (Interface web)
+  # =======================================================================
+  airflow-webserver:
+    image: edf-airflow:latest
+    container_name: edf-airflow-webserver
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://edf:edf123@postgres/edf_dw
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__FERNET_KEY: "ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg="
+      AIRFLOW__WEBSERVER__SECRET_KEY: "edf-secret-key-2024"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+      AIRFLOW__WEBSERVER__RATE_LIMIT_STORAGE_URI: redis://redis:6379/0
+      AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: "600"
+      AIRFLOW__WEBSERVER__WORKER_TIMEOUT: "300"
+      AIRFLOW__WEBSERVER__WORKERS: "2"
+      AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: "600"
+      AIRFLOW_CONN_POSTGRES_DW: postgresql://edf:edf123@postgres:5432/edf_dw
+      AIRFLOW_CONN_MINIO_S3: aws://edfadmin:edfpassword123@?endpoint_url=http%3A%2F%2Fminio%3A9000
+      AIRFLOW_CONN_KAFKA_DEFAULT: kafka://kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AIRFLOW_CONN_SPARK_REST: spark://spark-master:6066
+      SPARK_REST_URL: http://spark-master:6066
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_JOBS_DIR: /opt/spark-jobs
+      SPARK_EXTRA_JARS: /opt/spark/extra-jars/hadoop-aws-3.3.4.jar,/opt/spark/extra-jars/aws-java-sdk-bundle-1.12.262.jar,/opt/spark/extra-jars/postgresql-42.7.4.jar
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: edfadmin
+      MINIO_SECRET_KEY: edfpassword123
+      DATA_DIR: /opt/airflow/data/raw
+      REPORT_EDA_LOCAL: /opt/airflow/data/eda/report
+      MODEL_LOCAL_PATH: /opt/airflow/data/models/rte
+      EDF_ENVIRONMENT: dev
+      POSTGRES_CONN: postgresql://edf:edf123@postgres:5432/edf_dw
+      SCHEMA_DW_SQL: /opt/airflow/infra/postgres/schema_dw.sql
+      PYTHONPATH: /opt/airflow/project:/opt/airflow/plugins
+    env_file:
+      - .env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./data/raw:/opt/airflow/data/raw:ro
+      - ./data/eda:/opt/airflow/data/eda
+      - ./data/models:/opt/airflow/data/models
+      - ./rte_pipeline:/opt/airflow/project/rte_pipeline
+      - ./spark:/opt/airflow/project/spark
+      - ./infra/postgres:/opt/airflow/infra/postgres:ro
+    ports:
+      - "8081:8080"
+    command: webserver
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 20s
+      timeout: 15s
+      retries: 15
+      start_period: 300s
+    restart: unless-stopped
+
+  # =======================================================================
+  # Airflow Scheduler (Exécution des DAGs)
+  # =======================================================================
+  airflow-scheduler:
+    image: edf-airflow:latest
+    container_name: edf-airflow-scheduler
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://edf:edf123@postgres/edf_dw
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__FERNET_KEY: "ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg="
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__WEBSERVER__RATE_LIMIT_STORAGE_URI: redis://redis:6379/0
+      AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: "600"
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: edfadmin
+      MINIO_SECRET_KEY: edfpassword123
+      POSTGRES_CONN: postgresql://edf:edf123@postgres:5432/edf_dw
+      SCHEMA_DW_SQL: /opt/airflow/infra/postgres/schema_dw.sql
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AIRFLOW_CONN_SPARK_REST: spark://spark-master:6066
+      SPARK_REST_URL: http://spark-master:6066
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_JOBS_DIR: /opt/spark-jobs
+      SPARK_EXTRA_JARS: /opt/spark/extra-jars/hadoop-aws-3.3.4.jar,/opt/spark/extra-jars/aws-java-sdk-bundle-1.12.262.jar,/opt/spark/extra-jars/postgresql-42.7.4.jar
+      DATA_DIR: /opt/airflow/data/raw
+      REPORT_EDA_LOCAL: /opt/airflow/data/eda/report
+      MODEL_LOCAL_PATH: /opt/airflow/data/models/rte
+      EDF_ENVIRONMENT: dev
+      PYTHONPATH: /opt/airflow/project:/opt/airflow/plugins
+    env_file:
+      - .env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./data/raw:/opt/airflow/data/raw:ro
+      - ./data/eda:/opt/airflow/data/eda
+      - ./data/models:/opt/airflow/data/models
+      - ./rte_pipeline:/opt/airflow/project/rte_pipeline
+      - ./spark:/opt/airflow/project/spark
+      - ./infra/postgres:/opt/airflow/infra/postgres:ro
+    command: scheduler
+    restart: unless-stopped
+
+  # =======================================================================
+  # Webapp (Interface web — déclenchement DAG, suivi, dashboard)
+  # =======================================================================
+  webapp:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    image: edf-webapp:latest
+    container_name: edf-webapp
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      # Backend calls — internal Docker network hostnames.
+      AIRFLOW_BASE_URL: http://airflow-webserver:8080
+      AIRFLOW_USERNAME: admin
+      AIRFLOW_PASSWORD: admin123
+      PG_HOST: postgres
+      PG_PORT: "5432"
+      PG_USER: edf
+      PG_PASSWORD: edf123
+      PG_DATABASE: edf_dw
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: edfadmin
+      MINIO_SECRET_KEY: edfpassword123
+      SPARK_MASTER_INTERNAL_URL: http://spark-master:8080
+      KAFKA_BOOTSTRAP_HOST: kafka
+      KAFKA_BOOTSTRAP_PORT: "9092"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      # Browser-facing links — host-exposed ports (the browser runs on the host).
+      AIRFLOW_UI_URL: http://localhost:8081
+      SPARK_MASTER_UI_URL: http://localhost:8082
+      MINIO_CONSOLE_URL: http://localhost:9001
+      GRAFANA_BASE_URL: http://localhost:3001
+      EDF_DAG_ID: edf_pipeline_complet
+      DATA_DIR: /app/data/raw
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: "5000"
+      FLASK_DEBUG: "true"
+    volumes:
+      - ./webapp:/app
+      - ./data/raw:/app/data/raw:ro
+      # rte_pipeline is a plain Python package (no Airflow deps) reused here
+      # purely for XLS parsing (data_years.py) to populate the year selector.
+      - ./rte_pipeline:/app/rte_pipeline:ro
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/', timeout=8)"]
+      interval: 20s
+      timeout: 12s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  # =======================================================================
+  # Prometheus (Collecte & stockage des métriques)
+  # =======================================================================
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: edf-prometheus
+    depends_on:
+      postgres-exporter:
+        condition: service_started
+      kafka-exporter:
+        condition: service_started
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=90d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # =======================================================================
+  # Grafana (Dashboard & visualisation des métriques)
+  # =======================================================================
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: edf-grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      postgres-exporter:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: edf-admin
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_DEFAULT_THEME: dark
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/edf/edf_platform_overview.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Anonymous read-only viewer access + iframe embedding, so the webapp's
+      # Metrics tab can embed dashboards without a login wall.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+
+  # =======================================================================
+  # Exporter Prometheus pour PostgreSQL (connexions, requêtes, locks...)
+  # =======================================================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: edf-postgres-exporter
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_NAME: postgresql://edf:edf123@postgres:5432/edf_dw?sslmode=disable
+    ports:
+      - "9187:9187"
+    restart: unless-stopped
+
+  # =======================================================================
+  # Exporter Prometheus pour Kafka (lag consumer, throughput, ISR...)
+  # =======================================================================
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    container_name: edf-kafka-exporter
+    depends_on:
+      kafka:
+        condition: service_started
+    command:
+      - "--kafka.server=kafka:9092"
+    ports:
+      - "9308:9308"
+    restart: unless-stopped
+
+volumes:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
+  minio_data:
+  postgres_data:
+  spark_logs:
+  spark_ivy_cache:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: edf-etl-network

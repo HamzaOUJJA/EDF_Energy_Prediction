@@ -1,0 +1,8 @@
+# Dépendances minimales pour `make test` / `make dev-venv`
+# (sans PySpark — les jobs Spark tournent dans Docker)
+
+kafka-python==2.2.15
+pyarrow==17.0.0
+numpy==1.26.4
+psycopg2-binary==2.9.9
+pytest==8.3.3

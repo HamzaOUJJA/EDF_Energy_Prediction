@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: EDF Energy Prediction Dashboards
+    orgId: 1
+    folder: EDF Energy Prediction
+    folderUid: edf-energy-prediction
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/edf

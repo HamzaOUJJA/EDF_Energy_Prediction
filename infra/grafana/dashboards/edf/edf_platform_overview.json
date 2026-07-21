@@ -1,0 +1,505 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Analytics & ML",
+      "type": "link",
+      "url": "/d/edf-data-analytics",
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Santé infrastructure",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value" },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"postgres\"}", "legendFormat": "PostgreSQL", "refId": "A" }],
+      "title": "PostgreSQL",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP" }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value" },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"kafka\"}", "refId": "A" }],
+      "title": "Kafka",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP" }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value" },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"minio\"}", "refId": "A" }],
+      "title": "MinIO",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP" }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value" },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"spark-master\"}", "refId": "A" }],
+      "title": "Spark Master",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 1 }, { "color": "green", "value": 2 }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(up{job=\"spark-workers\"}) or vector(0)", "refId": "A" }],
+      "title": "Spark Workers UP",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 10000 }, { "color": "red", "value": 50000 }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(kafka_consumergroup_lag) or vector(0)", "refId": "A" }],
+      "title": "Kafka Lag total",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "showPoints": "never", "spanNulls": true },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 10,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "kafka_consumergroup_lag", "legendFormat": "{{ consumergroup }} / {{ topic }}", "refId": "A" }],
+      "title": "Lag Kafka par topic & consumer group",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 11,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(pg_stat_activity_count{datname=\"edf_dw\"}) or vector(0)", "legendFormat": "Connexions actives", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(pg_stat_database_xact_commit{datname=\"edf_dw\"}[5m])", "legendFormat": "Commits/s", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(pg_stat_database_xact_rollback{datname=\"edf_dw\"}[5m])", "legendFormat": "Rollbacks/s", "refId": "C" }
+      ],
+      "title": "PostgreSQL — connexions & transactions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "showPoints": "never" },
+          "unit": "decgbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 13 },
+      "id": 12,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "minio_cluster_usage_total_bytes / 1073741824", "legendFormat": "Utilisé (GB)", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "minio_cluster_capacity_usable_total_bytes / 1073741824", "legendFormat": "Capacité (GB)", "refId": "B" }
+      ],
+      "title": "MinIO — stockage cluster",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 13 },
+      "id": 13,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "metrics_master_aliveWorkers_Value", "legendFormat": "Workers vivants", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "metrics_master_apps_Value", "legendFormat": "Applications", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "metrics_worker_coresUsed_Value", "legendFormat": "Cores utilisés ({{instance}})", "refId": "C" }
+      ],
+      "title": "Spark — workers & applications",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
+      "id": 101,
+      "title": "Opérations ETL & qualité",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 21 },
+      "id": 20,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT COUNT(*)::double precision AS metric FROM etl.pipeline_runs", "refId": "A" }],
+      "title": "Runs ETL (total)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 21 },
+      "id": 21,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT COUNT(*)::double precision AS metric FROM etl.pipeline_runs WHERE status IN ('failed', 'error') AND started_at >= NOW() - INTERVAL '7 days'", "refId": "A" }],
+      "title": "Échecs (7 j)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 90 }, { "color": "green", "value": 98 }] },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 21 },
+      "id": 22,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN passed THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1)::double precision AS metric FROM etl.data_quality_checks WHERE checked_at >= NOW() - INTERVAL '30 days'", "refId": "A" }],
+      "title": "Qualité — taux PASS (30 j)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 21 },
+      "id": 23,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT COUNT(*)::double precision AS metric FROM dw.fact_consumption_silver", "refId": "A" }],
+      "title": "Lignes Silver",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 21 },
+      "id": 24,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT COUNT(*)::double precision AS metric FROM dw.agg_daily", "refId": "A" }],
+      "title": "Jours Gold",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 21 },
+      "id": 25,
+      "options": { "colorMode": "value", "graphMode": "none", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT TO_CHAR(MIN(datetime), 'YYYY-MM-DD') || ' → ' || TO_CHAR(MAX(datetime), 'YYYY-MM-DD') AS metric FROM dw.fact_consumption_silver", "refId": "A" }],
+      "title": "Couverture DW",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 25 },
+      "id": 30,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT status AS metric, COUNT(*)::double precision AS value FROM etl.pipeline_runs GROUP BY status ORDER BY value DESC", "refId": "A" }],
+      "title": "Répartition statuts pipeline",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisBorderShow": false },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 25 },
+      "id": 31,
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": { "displayMode": "hidden", "showLegend": false },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": { "mode": "single" },
+        "xField": "dag_id",
+        "xTickLabelRotation": 0
+      },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT dag_id, COUNT(*)::double precision AS runs FROM etl.pipeline_runs GROUP BY dag_id ORDER BY runs DESC", "refId": "A" }],
+      "title": "Volume de runs par DAG",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  { "options": { "failed": { "color": "red", "index": 0, "text": "FAILED" }, "error": { "color": "red", "index": 1, "text": "ERROR" }, "success": { "color": "green", "index": 2, "text": "SUCCESS" }, "success_with_warnings": { "color": "yellow", "index": 3, "text": "WARN" }, "running": { "color": "blue", "index": 4, "text": "RUNNING" } }, "type": "value" },
+                  { "options": { "match": "null", "result": { "color": "text", "index": 5, "text": "—" } }, "type": "special" }
+                ]
+              },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "rows_written" },
+            "properties": [{ "id": "unit", "value": "short" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 33 },
+      "id": 32,
+      "options": { "cellHeight": "sm", "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "started_at" }] },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT dag_id, run_type, status, rows_written, ROUND(EXTRACT(EPOCH FROM (finished_at - started_at))::numeric, 1) AS duration_s, started_at, finished_at FROM etl.pipeline_runs ORDER BY COALESCE(finished_at, started_at) DESC NULLS LAST LIMIT 25", "refId": "A" }],
+      "title": "Runs ETL récents",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" } } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "passed" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  { "options": { "false": { "color": "red", "index": 0, "text": "FAIL" }, "true": { "color": "green", "index": 1, "text": "PASS" } }, "type": "value" }
+                ]
+              },
+              { "id": "custom.cellOptions", "value": { "type": "color-background" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 33 },
+      "id": 33,
+      "options": { "cellHeight": "sm", "showHeader": true, "sortBy": [{ "desc": true, "displayName": "checked_at" }] },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT checked_at, check_name, table_name, passed, actual_value, expected_value, CASE WHEN check_name = 'year_coverage_gaps' AND NOT passed THEN 'Silver: ' || COALESCE((SELECT string_agg(DISTINCT year::text, ', ' ORDER BY year::text) FROM dw.fact_consumption_silver WHERE year IS NOT NULL), '(vide)') || ' — année(s) manquante(s) entre min et max (ajoutez export RTE ex. Annuel-Definitif 2025)' ELSE COALESCE(CASE WHEN detail LIKE '{%' THEN (detail::jsonb)->>'human_detail' END, LEFT(COALESCE(detail, ''), 120)) END AS detail FROM etl.data_quality_checks ORDER BY checked_at DESC LIMIT 20", "refId": "A" }],
+      "title": "Contrôles qualité récents",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "id": 120,
+      "title": "Machine Learning — dernier run",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "description": "Modèle avec le RMSE le plus bas sur le dernier run enregistré dans etl.model_metrics.",
+      "fieldConfig": { "defaults": { "unit": "none", "noValue": "— (lancer make run-ml)" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 43 },
+      "id": 121,
+      "options": { "colorMode": "value", "graphMode": "none", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT model_name AS metric FROM etl.model_metrics WHERE run_id = (SELECT run_id FROM etl.model_metrics ORDER BY trained_at DESC NULLS LAST LIMIT 1) ORDER BY rmse ASC NULLS LAST LIMIT 1", "refId": "A" }],
+      "title": "Meilleur modèle",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short", "decimals": 1, "noValue": "—" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 43 },
+      "id": 122,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT ROUND(MIN(rmse)::numeric, 1)::double precision AS metric FROM etl.model_metrics WHERE run_id = (SELECT run_id FROM etl.model_metrics ORDER BY trained_at DESC NULLS LAST LIMIT 1)", "refId": "A" }],
+      "title": "RMSE minimal (MW)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 3, "noValue": "—" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 43 },
+      "id": 123,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^metric$/", "values": false } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT ROUND(MAX(r2)::numeric, 4)::double precision AS metric FROM etl.model_metrics WHERE run_id = (SELECT run_id FROM etl.model_metrics ORDER BY trained_at DESC NULLS LAST LIMIT 1)", "refId": "A" }],
+      "title": "R² max",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "edf-postgres" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" } }, "decimals": 2 },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "rmse" },
+            "properties": [{ "id": "displayName", "value": "RMSE (MW)" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 47 },
+      "id": 124,
+      "options": { "cellHeight": "sm", "showHeader": true, "sortBy": [{ "desc": false, "displayName": "rmse" }] },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "edf-postgres" }, "editorMode": "code", "format": "table", "rawSql": "SELECT model_name, ROUND(rmse::numeric, 1) AS rmse, ROUND(mae::numeric, 1) AS mae, ROUND(r2::numeric, 4) AS r2, trained_at FROM etl.model_metrics WHERE run_id = (SELECT run_id FROM etl.model_metrics ORDER BY trained_at DESC NULLS LAST LIMIT 1) ORDER BY rmse ASC NULLS LAST", "refId": "A" }],
+      "title": "Benchmark modèles — dernier run ML",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["edf", "etl", "infrastructure"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["10s", "30s", "1m", "5m", "15m"] },
+  "timezone": "browser",
+  "title": "EDF ETL — Vue plateforme",
+  "uid": "edf-platform-overview",
+  "version": 1
+}
