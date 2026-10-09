@@ -38,7 +38,7 @@
 # 	make shell-airflow        Console Airflow
 # 	make shell-spark          Console Spark
 # 	make shell-postgres       Console PostgreSQL
-# =======================================================================
+# ========================================================================
 
 .DEFAULT_GOAL := help
 
